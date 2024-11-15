@@ -29,15 +29,15 @@ class UniversalFaker:
         - numpy.ndarray: The transformed image.
         """
         transformations = [
-            #("add_gaussian_noise", self.noise_methods.add_gaussian_noise, 0.3),
-            #("add_salt_and_pepper_noise", self.noise_methods.add_salt_and_pepper_noise, 0.3),
-            #("enhance_image_color", self.color_methods.enhance_image_color, 0.3),
-            #('change_color_palette', self.color_methods.change_color_palette, 0.3),
-            #("apply_deepdream", self.deepdream_methods.apply_deepdream, 0.15),
-            #("fgsm_attack", self.adversarial_methods.fgsm_attack, 0.15),
-            #("seamless_blend", self.image_manipulation_methods.seamless_blend, 0.1),
-            ("apply_style_transfer", self.style_transfer_methods.apply_style_transfer, 0.1),
-            #("apply_photorealistic_style_transfer", self.style_transfer_methods.apply_photorealistic_style_transfer, 0.1),
+            ("add_gaussian_noise", self.noise_methods.add_gaussian_noise, 0.3),
+            ("add_salt_and_pepper_noise", self.noise_methods.add_salt_and_pepper_noise, 0.3),
+            ("enhance_image_color", self.color_methods.enhance_image_color, 0.3),
+            ('change_color_palette', self.color_methods.change_color_palette, 0.3),
+            ("apply_deepdream", self.deepdream_methods.apply_deepdream, 0.15),
+            ("fgsm_attack", self.adversarial_methods.fgsm_attack, 0.15),
+            ("seamless_blend", self.image_manipulation_methods.seamless_blend, 0.1),
+            #("apply_style_transfer", self.style_transfer_methods.apply_style_transfer, 0.1),
+            ("apply_photorealistic_style_transfer", self.style_transfer_methods.apply_photorealistic_style_transfer, 0.1),
 
         ]
 
