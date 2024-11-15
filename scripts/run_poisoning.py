@@ -16,7 +16,7 @@ def run_poisoning():
     ds = deeplake.load(deeplake_dataset)
 
     # Select random subset of images for transformation (e.g., 1)
-    random_indices = random.sample(range(len(ds)), 2)
+    random_indices = random.sample(range(len(ds)), 25000)
 
     # Output folder for fake images
     output_folder = "../data/poisoned"
