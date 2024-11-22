@@ -5,7 +5,7 @@ from torchvision import transforms
 import warnings
 warnings.filterwarnings("ignore")
 
-def create_combined_dataset(fake_path, target_size=(256, 256), real_limit=50, fake_limit=15):
+def create_combined_dataset(fake_path, target_size=(256, 256), real_limit=80000, fake_limit=32000):
     # Load WikiArt dataset from DeepLake
     ds = deeplake.load("hub://activeloop/wiki-art")
     real_images = []
