@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, recall_score, f1_score
 from torchvision.transforms.functional import to_pil_image
 import clip
+from early_stopping import EarlyStopping
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -70,6 +71,7 @@ class ViTCLIPPipeline:
                       std=(0.26862954, 0.26130258, 0.27577711))
         ])
 
+        self.early_stopping = EarlyStopping(patience=5, min_delta=0.01)
     def split_dataset(self, images, labels, test_size=0.4, val_size=0.5):
         images_train, images_temp, labels_train, labels_temp = train_test_split(
             images, labels, test_size=test_size, stratify=labels, random_state=42
@@ -136,6 +138,11 @@ class ViTCLIPPipeline:
             }
             results["epochs"].append(epoch_result)
             print(epoch_result)
+
+            # Early stopping check
+            if self.early_stopping.should_stop(val_loss, epoch):
+                print(f"Early stopping at epoch {epoch + 1}")
+                break
 
         return results
 

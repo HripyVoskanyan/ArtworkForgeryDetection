@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, recall_score, f1_score
 from torchvision.transforms.functional import to_pil_image
 import timm
+from early_stopping import EarlyStopping
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -70,6 +71,8 @@ class DINOEmbeddingPipeline:
             ToTensor(),
             Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
+
+        self.early_stopping = EarlyStopping(patience=5, min_delta=0.01)
 
     def split_dataset(self, images, labels, test_size=0.4, val_size=0.5):
         images_train, images_temp, labels_train, labels_temp = train_test_split(
@@ -136,6 +139,11 @@ class DINOEmbeddingPipeline:
             }
             results["epochs"].append(epoch_result)
             print(epoch_result)
+
+            # Early stopping check
+            if self.early_stopping.should_stop(val_loss, epoch):
+                print(f"Early stopping at epoch {epoch + 1}")
+                break
 
         return results
 

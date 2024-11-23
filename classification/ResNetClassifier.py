@@ -6,6 +6,7 @@ from torchvision import models
 from torchvision.models import resnet18, ResNet18_Weights
 from sklearn.metrics import accuracy_score, recall_score, f1_score
 from torch.utils.data import Dataset, DataLoader
+from early_stopping import EarlyStopping
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -23,7 +24,7 @@ class ResNetClassifier:
         self.model = self.model.to(self.device)
         self.criterion = nn.BCELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0001, weight_decay=1e-5)
-
+        self.early_stopping = EarlyStopping(patience=5, min_delta=0.01)
     def train_with_validation(self, train_loader, val_loader, epochs=10):
         self.model.train()
         results = {"epochs": []}
@@ -72,6 +73,11 @@ class ResNetClassifier:
             }
             results["epochs"].append(epoch_result)
             print(epoch_result)
+
+            # Early stopping check
+            if self.early_stopping.should_stop(val_loss, epoch):
+                print(f"Early stopping at epoch {epoch + 1}")
+                break
 
         return results
 

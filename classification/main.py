@@ -13,6 +13,7 @@ from CLIPViTClassifier import ViTCLIPPipeline, CLIPViTClassifier, EmbeddingDatas
 from DINOClassifier import DINOEmbeddingPipeline, DINOClassifier, EmbeddingDataset as DINOEmbeddingDataset
 from torchvision.transforms.functional import to_pil_image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+from early_stopping import EarlyStopping
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -119,7 +120,7 @@ clip_val_loader = DataLoader(clip_val_dataset, batch_size=batch_size, shuffle=Fa
 clip_test_loader = DataLoader(clip_test_dataset, batch_size=batch_size, shuffle=False)
 
 clip_train_results = clip_pipeline.train_classifier(
-    clip_classifier, clip_train_loader, clip_val_loader, nn.BCELoss(), torch.optim.Adam(clip_classifier.parameters(), lr=0.001), epochs=10
+    clip_classifier, clip_train_loader, clip_val_loader, nn.BCELoss(), torch.optim.Adam(clip_classifier.parameters(), lr=0.001, weight_decay=1e-4), epochs=20
 )
 # Evaluate the classifier
 clip_test_results, clip_misclassified_samples = clip_pipeline.evaluate_classifier(clip_classifier, clip_test_loader)
@@ -184,8 +185,8 @@ dino_train_results = dino_pipeline.train_classifier(
     dino_train_loader,
     dino_val_loader,
     nn.BCELoss(),
-    torch.optim.Adam(dino_classifier.parameters(), lr=0.001),
-    epochs=10
+    torch.optim.Adam(dino_classifier.parameters(), lr=0.001, weight_decay=1e-4),
+    epochs=30
 )
 
 # Evaluate the DINO classifier
@@ -227,7 +228,7 @@ resnet_test_loader = DataLoader(
     batch_size=32, shuffle=False
 )
 
-resnet_train_results = resnet.train_with_validation(resnet_train_loader, resnet_val_loader, epochs=10)
+resnet_train_results = resnet.train_with_validation(resnet_train_loader, resnet_val_loader, epochs=20)
 resnet_test_results, resnet_misclassified_samples = resnet.evaluate_model(resnet_test_loader)
 
 if resnet_misclassified_samples:
@@ -260,7 +261,7 @@ vit_test_loader = DataLoader(
     ImageDataset(images_test, labels_test, transform=vit_transform),
     batch_size=32, shuffle=False
 )
-vit_train_results = vit.train_with_validation(vit_train_loader, vit_val_loader, epochs=10)
+vit_train_results = vit.train_with_validation(vit_train_loader, vit_val_loader, epochs=20)
 vit_test_results, vit_misclassified_samples = vit.evaluate_model(vit_test_loader)
 
 if vit_misclassified_samples:

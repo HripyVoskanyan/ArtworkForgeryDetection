@@ -5,6 +5,7 @@ import torch.nn as nn
 from torchvision.models import vit_b_16
 from sklearn.metrics import accuracy_score, recall_score, f1_score
 from torch.utils.data import Dataset, DataLoader
+from early_stopping import EarlyStopping
 import warnings
 warnings.filterwarnings("ignore")
 class ViTClassifier:
@@ -19,7 +20,8 @@ class ViTClassifier:
         )
         self.model = self.model.to(self.device)
         self.criterion = nn.BCELoss()  # Binary Cross-Entropy Loss
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001, weight_decay=1e-4)
+        self.early_stopping = EarlyStopping(patience=5, min_delta=0.01)
 
     def train_with_validation(self, train_loader, val_loader, epochs=10):
         self.model.train()
@@ -70,6 +72,10 @@ class ViTClassifier:
             results["epochs"].append(epoch_result)
             print(epoch_result)
 
+            # Early stopping check
+            if self.early_stopping.should_stop(val_loss, epoch):
+                print(f"Early stopping at epoch {epoch + 1}")
+                break
         return results
 
     def evaluate_model(self, test_loader, save_errors_path="../Results/misclassified_samples_vit.json"):
@@ -114,6 +120,7 @@ class ViTClassifier:
             "misclassified_count": len(misclassified_samples),
         }
         print(results)
+
         return results, misclassified_samples
 
     def save_results(self, results, output_path="../Results/vit_results.json"):
