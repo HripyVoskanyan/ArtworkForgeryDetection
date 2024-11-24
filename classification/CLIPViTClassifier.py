@@ -48,10 +48,12 @@ class CLIPViTClassifier(nn.Module):
     def __init__(self, embedding_dim=512):  # Default for CLIP ViT-B/32
         super(CLIPViTClassifier, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(embedding_dim, 128),
+            nn.Linear(embedding_dim, 256),  # First hidden layer
             nn.ReLU(),
-            nn.Linear(128, 1),  # Binary classification
-            nn.Sigmoid()  # Output probabilities
+            nn.Linear(256, 128),  # Second hidden layer
+            nn.ReLU(),
+            nn.Linear(128, 1),  # Output layer for binary classification
+            nn.Sigmoid()
         )
 
     def forward(self, x):
@@ -71,7 +73,7 @@ class ViTCLIPPipeline:
                       std=(0.26862954, 0.26130258, 0.27577711))
         ])
 
-        self.early_stopping = EarlyStopping(patience=5, min_delta=0.01)
+        self.early_stopping = EarlyStopping(patience=5, min_delta=0.005)
     def split_dataset(self, images, labels, test_size=0.4, val_size=0.5):
         images_train, images_temp, labels_train, labels_temp = train_test_split(
             images, labels, test_size=test_size, stratify=labels, random_state=42
