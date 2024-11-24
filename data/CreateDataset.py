@@ -1,45 +1,41 @@
-import deeplake
 from PIL import Image
 import os
-from torchvision import transforms
-import warnings
-warnings.filterwarnings("ignore")
 
-def create_combined_dataset(fake_path, target_size=(256, 256), real_limit=80000, fake_limit=34190):
-    # Load WikiArt dataset from DeepLake
-    ds = deeplake.load("hub://activeloop/wiki-art")
-    real_images = []
-    for i in range(min(real_limit, len(ds['images']))):
-        img = ds['images'][i].numpy()
-        real_images.append(Image.fromarray(img))
-    print('Real images loaded')
+def create_combined_dataset(real_path, fake_path):
+    dataset = []
+    labels = []
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.gif'}  # Add more extensions if needed
 
-    # Load fake images from local directory
-    fake_images = []
-    fake_files = [f for f in os.listdir(fake_path) if f.endswith(('png', 'jpg', 'jpeg'))][:fake_limit]
-    for img_file in fake_files:
-        with Image.open(os.path.join(fake_path, img_file)) as img:
-            fake_images.append(img.copy())  # Copy image to close the file handle
-    print('Fake images loaded')
-    print(len(fake_images))
+    # Process real images
+    for img_file in os.listdir(real_path):
+        file_ext = os.path.splitext(img_file)[1].lower()  # Get file extension
+        if file_ext not in allowed_extensions:
+            print(f"Skipping non-image file: {img_file}")
+            continue
 
-    # Define transformation
-    transform = transforms.Compose([
-        transforms.Resize(target_size),
-        transforms.ToTensor()
-    ])
+        try:
+            with Image.open(os.path.join(real_path, img_file)) as img:
+                img = img.convert("RGB")  # Ensure it's in RGB format
+                dataset.append(img)
+                labels.append(0)  # Label 0 for real images
+        except Exception as e:
+            print(f"Error processing file {img_file}: {e}")
+            continue
 
-    # Apply transformation
-    real_images = [transform(img) for img in real_images]
-    fake_images = [transform(img) for img in fake_images]
-    print('Images transformed')
+    # Process fake images
+    for img_file in os.listdir(fake_path):
+        file_ext = os.path.splitext(img_file)[1].lower()
+        if file_ext not in allowed_extensions:
+            print(f"Skipping non-image file: {img_file}")
+            continue
 
-    # Create labels
-    real_labels = [0] * len(real_images)
-    fake_labels = [1] * len(fake_images)
+        try:
+            with Image.open(os.path.join(fake_path, img_file)) as img:
+                img = img.convert("RGB")
+                dataset.append(img)
+                labels.append(1)  # Label 1 for fake images
+        except Exception as e:
+            print(f"Error processing file {img_file}: {e}")
+            continue
 
-    # Combine datasets
-    images = real_images + fake_images
-    labels = real_labels + fake_labels
-
-    return images, labels
+    return dataset, labels
