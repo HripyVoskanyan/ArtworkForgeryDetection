@@ -72,7 +72,7 @@ class DINOEmbeddingPipeline:
             Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
 
-        self.early_stopping = EarlyStopping(patience=5, min_delta=0.01)
+        self.early_stopping = EarlyStopping(patience=5, min_delta=0.005)
 
     def split_dataset(self, images, labels, test_size=0.4, val_size=0.5):
         images_train, images_temp, labels_train, labels_temp = train_test_split(
