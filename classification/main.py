@@ -47,7 +47,7 @@ os.makedirs("../models", exist_ok=True)
 
 # Load dataset
 print("Loading dataset...")
-images, labels = create_combined_dataset(real_path='../data/originals', fake_path="../data/poisoned")
+images, labels = create_combined_dataset(real_path='../data/originals', fake_path="../data/poisoned", real_limit=10000, fake_limit=10000)
 
 # Split dataset
 print("Splitting dataset...")
@@ -118,6 +118,7 @@ clip_test_dataset = CLIPEmbeddingDataset(clip_test_embeddings, clip_test_labels)
 clip_train_loader = DataLoader(clip_train_dataset, batch_size=batch_size, shuffle=True)
 clip_val_loader = DataLoader(clip_val_dataset, batch_size=batch_size, shuffle=False)
 clip_test_loader = DataLoader(clip_test_dataset, batch_size=batch_size, shuffle=False)
+
 
 clip_train_results = clip_pipeline.train_classifier(
     clip_classifier, clip_train_loader, clip_val_loader, nn.BCELoss(), torch.optim.Adam(clip_classifier.parameters(), lr=0.001, weight_decay=1e-4), epochs=20
