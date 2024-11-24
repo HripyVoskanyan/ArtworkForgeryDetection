@@ -47,7 +47,7 @@ os.makedirs("../models", exist_ok=True)
 
 # Load dataset
 print("Loading dataset...")
-images, labels = create_combined_dataset(fake_path="../data/poisoned")
+images, labels = create_combined_dataset(real_path='../data/originals', fake_path="../data/poisoned")
 
 # Split dataset
 print("Splitting dataset...")
