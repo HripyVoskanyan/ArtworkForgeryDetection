@@ -24,7 +24,7 @@ class ResNetClassifier:
         self.model = self.model.to(self.device)
         self.criterion = nn.BCELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0001, weight_decay=1e-5)
-        self.early_stopping = EarlyStopping(patience=5, min_delta=0.01)
+        self.early_stopping = EarlyStopping(patience=5, min_delta=0.005)
     def train_with_validation(self, train_loader, val_loader, epochs=10):
         self.model.train()
         results = {"epochs": []}
