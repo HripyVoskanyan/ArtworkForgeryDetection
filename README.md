@@ -95,7 +95,9 @@ All images are resized to a uniform size for compatibility with the classificati
   ```bash
   python classification/main.py
 
-### Future Work
+---
+
+## Future Work
 - Extend poisoning techniques to include newer generative models.
 - Fine-tune self-supervised learning models for higher classification accuracy.
 - Explore additional augmentation strategies for enhanced robustness.
