@@ -77,24 +77,24 @@ All images are resized to a uniform size for compatibility with the classificati
    ```bash
    git clone https://github.com/HripyVoskanyan/ArtworkForgeryDetection.git
    cd ArtworkForgeryDetection
-   
+   ```
 2. Set up a virtual environment:
   ```bash
   python -m venv .venv
   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
+```
 3. Install dependencies:
   ```bash
   pip install -r requirements.txt
-
+```
 4. Dataset Preparation
   ```bash
   python scripts/run_poisoning.py
-
+```
 5. Train the Methods
   ```bash
   python classification/main.py
-
+```
 ---
 
 ## Future Work
