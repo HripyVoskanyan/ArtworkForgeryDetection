@@ -20,8 +20,8 @@ class ViTClassifier:
         )
         self.model = self.model.to(self.device)
         self.criterion = nn.BCELoss()  # Binary Cross-Entropy Loss
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001, weight_decay=1e-4)
-        self.early_stopping = EarlyStopping(patience=5, min_delta=0.005)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-4, weight_decay=1e-5)
+        self.early_stopping = EarlyStopping(patience=3, min_delta=0.001)
 
     def train_with_validation(self, train_loader, val_loader, epochs=10):
         self.model.train()

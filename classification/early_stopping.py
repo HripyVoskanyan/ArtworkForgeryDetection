@@ -1,5 +1,5 @@
 class EarlyStopping:
-    def __init__(self, patience=3, min_delta=0.01):
+    def __init__(self, patience=3, min_delta=0.005):
         """
         :param patience: Number of epochs with no improvement after which training will stop.
         :param min_delta: Minimum change to qualify as an improvement.

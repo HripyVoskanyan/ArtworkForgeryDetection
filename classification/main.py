@@ -1,5 +1,6 @@
 import os
 import sys
+import itertools
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import torch
 from torch import nn
@@ -9,10 +10,10 @@ from data.CreateDataset import create_combined_dataset  # Import your dataset cr
 from analyze_errors import visualize_errors, analyze_errors, save_error_analysis
 from ResNetClassifier import ResNetClassifier
 from ViTClassifier import ViTClassifier
-from CLIPViTClassifier import ViTCLIPPipeline, CLIPViTClassifier, EmbeddingDataset as CLIPEmbeddingDataset
+from CLIPViTClassifier import ViTCLIPPipeline, FocalLoss, ContrastiveLoss, TripletLoss, CLIPViTClassifier, EmbeddingDataset as CLIPEmbeddingDataset
 from DINOClassifier import DINOEmbeddingPipeline, DINOClassifier, EmbeddingDataset as DINOEmbeddingDataset
 from torchvision.transforms.functional import to_pil_image
-from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize, RandomHorizontalFlip, RandomRotation
 from early_stopping import EarlyStopping
 import warnings
 warnings.filterwarnings("ignore")
@@ -47,7 +48,7 @@ os.makedirs("../models", exist_ok=True)
 
 # Load dataset
 print("Loading dataset...")
-images, labels = create_combined_dataset(real_path='../data/originals', fake_path="../data/poisoned", real_limit=10000, fake_limit=10000)
+images, labels = create_combined_dataset(real_path='../data/originals', fake_path="../data/poisoned", real_limit=15000, fake_limit=15000)
 
 # Split dataset
 print("Splitting dataset...")
@@ -68,10 +69,12 @@ resnet_transform = Compose([
     ToTensor(),
     Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Standard ImageNet normalization
 ])
-# CLIP (ViT-B/32 specific normalization)
+#CLIP (ViT-B/32 specific normalization)
 clip_transform = Compose([
     Resize(224),
     CenterCrop(224),
+    RandomHorizontalFlip(p=0.5),
+    RandomRotation(degrees=15),
     ToTensor(),
     Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
 ])
@@ -80,17 +83,20 @@ clip_transform = Compose([
 dino_transform = Compose([
     Resize((224, 224)),
     CenterCrop(224),
+    RandomHorizontalFlip(p=0.5),
+    RandomRotation(degrees=10),
     ToTensor(),
     Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
-# Define ViT preprocessing
+# # Define ViT preprocessing
 vit_transform = Compose([
     Resize((224, 224)),            # Resize to 224x224 (ViT input size)
     CenterCrop(224),               # Crop the image to 224x224 (ViT input size)
     ToTensor(),                    # Convert PIL image to tensor
     Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize (ImageNet mean & std)
 ])
+
 # -------------------
 # ViT+CLIP Classifier
 # -------------------
@@ -115,18 +121,90 @@ clip_train_dataset = CLIPEmbeddingDataset(clip_train_embeddings, clip_train_labe
 clip_val_dataset = CLIPEmbeddingDataset(clip_val_embeddings, clip_val_labels)
 clip_test_dataset = CLIPEmbeddingDataset(clip_test_embeddings, clip_test_labels)
 
-clip_train_loader = DataLoader(clip_train_dataset, batch_size=batch_size, shuffle=True)
-clip_val_loader = DataLoader(clip_val_dataset, batch_size=batch_size, shuffle=False)
-clip_test_loader = DataLoader(clip_test_dataset, batch_size=batch_size, shuffle=False)
+clip_train_loader = DataLoader(clip_train_dataset, batch_size=64, shuffle=True)
+clip_val_loader = DataLoader(clip_val_dataset, batch_size=64, shuffle=False)
+clip_test_loader = DataLoader(clip_test_dataset, batch_size=64, shuffle=False)
 
+# search_space = {
+#     'learning_rate': [1e-4, 5e-4, 1e-3, 5e-3],
+#     'alpha': [0.5, 0.75, 1.0],
+#     'gamma': [1, 2, 3],
+#     'dropout_rate': [0.3, 0.5, 0.6],
+#     'weight_decay': [1e-5, 1e-4, 1e-3],
+#     'batch_size': [16, 32, 64],
+# }
+# grid = list(itertools.product(*search_space.values()))
+# best_model = None
+# best_accuracy = 0
+# best_hyperparams = {}
+criterion = FocalLoss(alpha=0.75, gamma=1)
+#criterion = ContrastiveLoss(margin=0.1)
+#criterion = TripletLoss(margin=0.1)
+# Initialize the optimizer
+optimizer = torch.optim.Adam(clip_classifier.parameters(), lr=0.005, weight_decay=0.0001)
 
+# Train the classifier
 clip_train_results = clip_pipeline.train_classifier(
-    clip_classifier, clip_train_loader, clip_val_loader, nn.BCELoss(), torch.optim.Adam(clip_classifier.parameters(), lr=0.001, weight_decay=1e-4), epochs=20
-)
-# Evaluate the classifier
+    clip_classifier,
+    clip_train_loader,
+    clip_val_loader,
+    criterion,  # Use FocalLoss
+    optimizer,
+    epochs=30)
+# for params in grid:
+#     # Unpack hyperparameters
+#     learning_rate, alpha, gamma, dropout_rate, weight_decay, batch_size = params
+#
+#     # Create DataLoaders with the current batch size
+#     clip_train_loader = DataLoader(clip_train_dataset, batch_size=batch_size, shuffle=True)
+#     clip_val_loader = DataLoader(clip_val_dataset, batch_size=batch_size, shuffle=False)
+#     clip_test_loader = DataLoader(clip_test_dataset, batch_size=batch_size, shuffle=False)
+#
+#     # Initialize the model with the current dropout rate
+#     clip_classifier = CLIPViTClassifier(embedding_dim=512, dropout_rate=dropout_rate).to(device)
+#
+#     # Define the loss function and optimizer
+#     criterion = FocalLoss(alpha=alpha, gamma=gamma)
+#     optimizer = torch.optim.AdamW(
+#         clip_classifier.parameters(),
+#         lr=learning_rate,
+#         weight_decay=weight_decay
+#     )
+#
+#     # Train the model with the current hyperparameters
+#     vit_clip_pipeline = ViTCLIPPipeline()
+#     results = vit_clip_pipeline.train_classifier(
+#         model=clip_classifier,
+#         train_loader=clip_train_loader,
+#         val_loader=clip_val_loader,
+#         criterion=criterion,
+#         optimizer=optimizer,
+#         epochs=20  # Adjust as needed
+#     )
+#
+#     # Evaluate the model on the validation set
+#     val_accuracy = max(epoch['val_accuracy'] for epoch in results['epochs'])
+#     if val_accuracy > best_accuracy:
+#         best_accuracy = val_accuracy
+#         best_model = clip_classifier
+#         best_hyperparams = {
+#             'learning_rate': learning_rate,
+#             'alpha': alpha,
+#             'gamma': gamma,
+#             'dropout_rate': dropout_rate,
+#             'weight_decay': weight_decay,
+#             'batch_size': batch_size,
+#         }
+#
+# # Save the best model and hyperparameters
+# print("Best Hyperparameters:", best_hyperparams)
+# print("Best Validation Accuracy:", best_accuracy)
+#vit_clip_pipeline.save_model(best_model, "../models/best_vit_clip_classifier.pth")
+
+#Evaluate the classifier
 clip_test_results, clip_misclassified_samples = clip_pipeline.evaluate_classifier(clip_classifier, clip_test_loader)
 
-# Analyze and visualize errors
+#Analyze and visualize errors
 visualize_errors(clip_misclassified_samples, images_test)
 
 clip_error_summary = analyze_errors(clip_misclassified_samples)
@@ -185,8 +263,8 @@ dino_train_results = dino_pipeline.train_classifier(
     dino_classifier,
     dino_train_loader,
     dino_val_loader,
-    nn.BCELoss(),
-    torch.optim.Adam(dino_classifier.parameters(), lr=0.001, weight_decay=1e-4),
+    nn.BCEWithLogitsLoss(),
+    torch.optim.Adam(dino_classifier.parameters(), lr=1e-4, weight_decay=1e-5),
     epochs=30
 )
 

@@ -2,8 +2,9 @@ import os
 import json
 import torch
 import torch.nn as nn
+import torch.optim.lr_scheduler as lr_scheduler
 from torchvision import models
-from torchvision.models import resnet18, ResNet18_Weights
+from torchvision.models import resnet18, resnet50, ResNet18_Weights, ResNet50_Weights
 from sklearn.metrics import accuracy_score, recall_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from early_stopping import EarlyStopping
@@ -18,13 +19,17 @@ class ResNetClassifier:
         # Modify the classifier head for binary classification
         num_features = self.model.fc.in_features
         self.model.fc = nn.Sequential(
+            nn.Dropout(0.5),
             nn.Linear(num_features, 1),  # Single output for binary classification
             nn.Sigmoid()  # Output probabilities
         )
         self.model = self.model.to(self.device)
         self.criterion = nn.BCELoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0001, weight_decay=1e-5)
-        self.early_stopping = EarlyStopping(patience=5, min_delta=0.005)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001, weight_decay=1e-5)
+        self.scheduler = lr_scheduler.ReduceLROnPlateau(
+            self.optimizer, mode='min', factor=0.1, patience=2, verbose=True
+        )
+        self.early_stopping = EarlyStopping(patience=3, min_delta=0.001)
     def train_with_validation(self, train_loader, val_loader, epochs=10):
         self.model.train()
         results = {"epochs": []}
@@ -73,6 +78,8 @@ class ResNetClassifier:
             }
             results["epochs"].append(epoch_result)
             print(epoch_result)
+
+            self.scheduler.step(val_loss)
 
             # Early stopping check
             if self.early_stopping.should_stop(val_loss, epoch):
@@ -129,11 +136,11 @@ class ResNetClassifier:
         print(results)
         return results, misclassified_samples
 
-    def save_results(self, results, output_path="../Results/resnet_results.json"):
+    def save_results(self, results, output_path="../Results/resnet50_results.json"):
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w") as f:
             json.dump(results, f, indent=4)
 
-    def save_model(self, model_path="../models/resnet18_artwork_classifier.pth"):
+    def save_model(self, model_path="../models/resnet50_artwork_classifier.pth"):
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         torch.save(self.model.state_dict(), model_path)
